@@ -1,5 +1,12 @@
+#The main class of this gem
 class OutputHandler
 
+  # Creates a new instance of OutputHandler. It accepts an optionshash.
+  #
+  # @param console [Boolean]  If set to true (default), the handler will output to STDOUT. 
+  # @param logfile [String] If set to a target and the target is valid, the handler will output to logfile. 
+  #
+  #   
   def initialize(opts = {}, *args, &block)
     raise TypeError unless opts.is_a? Hash
     @outputQueue = Queue.new
@@ -12,10 +19,18 @@ class OutputHandler
     self.spawn_output
   end
 
+
+  # Returns whether output currently is paused.
+  #
+  # @return [Boolean] 
   def paused?
     @paused
   end
 
+  # Pauses the output. If parameter is sent, output will autoresume after delay. Overrides currently
+  # set delay.
+  #
+  # @param limit [Numeric] Time to pause.
   def pause(limit = 0)
     unless self.paused?
       Thread.kill(@outputThread)
@@ -30,11 +45,14 @@ class OutputHandler
     end
   end
  
-
+  # Unpauses currently paused output regardless of any set delay.
   def unpause
     @paused = false
   end
 
+  # Flushes currently suspended output.
+  #
+  # @param silent [Boolean] If set to true, flushes to /dev/null, else to configured output(s).
   def flush(silent = false)
     while not @outputQueue.empty?
       el = @outputQueue.pop
@@ -42,15 +60,24 @@ class OutputHandler
     end
   end
 
-  def out(s = "", newline = true)
-    @outputQueue << { s: s, newline: newline }
+  # Sends next chunk to outputs. Will be queued if #paused, otherwise sent to output(s).
+  #
+  # @param chunk [printable Object]
+  # @param newline [Boolean] Indicates whether (default) or not to end line with a newline character.
+  def out(chunk = "", newline = true)
+    @outputQueue << { s: chunk, newline: newline }
   end
 
-  def out!(s = "", newline = true)
-    print "\r#{s.chomp}#{newline ? "\n" : ""}" if @console
-    File.open(@logfile,'a+'){|f| f.write "\r#{s.chomp}#{newline ? "\n" : "" }" }  if @file
+  # Sends next chunk to output(s) directly, regardless of #paused.
+  #
+  # @param (see #out)
+  def out!(chunk = "", newline = true)
+    print "\r#{chunk.chomp}#{newline ? "\n" : ""}" if @console
+    File.open(@logfile,'a+'){|f| f.write "\r#{chunk.chomp}#{newline ? "\n" : "" }" }  if @file
   end
 
+  # Spawns output thread
+  # @!visibility private
   def spawn_output
     @outputThread = Thread.new do
       loop do
@@ -66,6 +93,9 @@ class OutputHandler
     end
   end
 
+  # Spawns a thread that creates some random output
+  #
+  # @!visibility private
   def random_output
     if @random_out_thread.nil?
       @random_out_thread = Thread.new do

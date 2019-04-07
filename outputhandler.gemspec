@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = "outputhandler"
-  s.version     = "0.1.1"
-  s.date        = "2019-04-07"
+  s.version     = "0.1.2"
+  s.date        = "2019-04-08"
   s.summary     = "Wrapper class that enables asynchronious output (pausing / unpausing)"
   s.description = "Wrapper class that enables asynchronious output (pausing / unpausing) "
   s.authors     = [ "Benjamin L. Tischendorf" ]
@@ -23,5 +23,6 @@ Gem::Specification.new do |s|
   # s.add_dependency 'bundler', '>= 1.1.16'
   s.add_development_dependency 'rspec','~>3.6'
   s.add_development_dependency 'cucumber','~>3.1'  
+  s.add_development_dependency 'yard', '~>0.9'
 end
 

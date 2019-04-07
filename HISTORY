@@ -1,0 +1,7 @@
+== 0.1.1 / 2019-04-07
+
+* Initial version - Benjamin L. Tischendorf
+
+== 0.1.2 / 2019-04-08
+
+* Added YARD documentation and 'rake cucumber' (also default)
