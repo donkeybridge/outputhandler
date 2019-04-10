@@ -31,5 +31,7 @@ Feature: Initialization
       | out        | 
       | out!       | 
       | flush      | 
-
-  Scenario: 
+      | puts       |
+      | puts!      |
+      | print      |
+      | print!     |

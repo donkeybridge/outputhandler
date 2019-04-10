@@ -11,5 +11,5 @@ Feature: A new OutputHandler can react to options hash
 
   Scenario: Parameter "logile: filename" enables output to filename
     Given an OutputHandler is created with parameter "logfile" set to "/tmp/foofile"
-    And output is send to #out 
-    Then file "/tmp/foofile" should contain output
+    And output "ramses" is send to #out 
+    Then file "/tmp/foofile" should contain output "ramses"

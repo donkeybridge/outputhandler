@@ -12,10 +12,11 @@ But "with a Hash as parameter it should not raise" do
 end
 
 Given /^an OutputHandler is created with parameter "([^"]*)" set to "([^"]*)"$/ do |param, value|
+  File.open(value, "w"){|f| f.write "" } if param == "logfile"
   eval "@output_handler = OutputHandler.new(#{param}:\"#{value}\")"
 end
 
-Then /^file "([^"]*)" should contain output$/ do |filename|
-  expect( File.read(filename).split("\n").last).to eq("\rfoo")
+Then /^file "([^"]*)" should contain output "([^"]*)"$/ do |filename, str|
+  expect( `cat #{filename} | tail -n1`.split("\r").last.chomp).to eq(str.chomp)
 end
   

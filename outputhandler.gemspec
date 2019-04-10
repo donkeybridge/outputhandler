@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = "outputhandler"
-  s.version     = "0.1.2"
-  s.date        = "2019-04-08"
+  s.version     = "0.1.3beta"
+  s.date        = "2019-04-10"
   s.summary     = "Wrapper class that enables asynchronious output (pausing / unpausing)"
   s.description = "Wrapper class that enables asynchronious output (pausing / unpausing) "
   s.authors     = [ "Benjamin L. Tischendorf" ]
@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/donkeybridge/outputhandler"
   s.platform    = Gem::Platform::RUBY
   s.license     = "BSD-4-Clause" 
+  s.required_ruby_version = '~> 2.0'
 
   versioned = `git ls-files -z`.split("\0")
 

@@ -37,11 +37,11 @@ end
 
 
 Then /^#(out!?) should send output with newline to console$/ do |method|
-  expect{@output_handler.send(method.to_sym,"foo"); sleep 0.1}.to output("\rfoo\n").to_stdout_from_any_process
+  expect{@output_handler.send(method.to_sym,"foo"); sleep 0.25}.to output("foo\n").to_stdout_from_any_process
 end
 
 Then /^#(out!?) should send output to console without newline when added parameter false$/ do |method|
-  expect{@output_handler.send(method.to_sym,"foo",false); sleep 0.1}.to output("\rfoo").to_stdout
+  expect{@output_handler.send(method.to_sym,"foo",false); sleep 0.1}.to output("foo").to_stdout
 end
 
 

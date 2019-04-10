@@ -1,12 +1,17 @@
 #The main class of this gem
 class OutputHandler
 
-  # Creates a new instance of OutputHandler. It accepts an optionshash.
+  # Aliasing puts and print, as they are included / inherited (?) from IO
+  alias_method :superputs,  :puts
+  # Aliasing puts and print, as they are included / inherited (?) from IO
+  alias_method :superprint, :print
+
+  # Creates a new instance of OutputHandler. It accepts an options hash.
   #
-  # @param console [Boolean]  If set to true (default), the handler will output to STDOUT. 
-  # @param logfile [String] If set to a target and the target is valid, the handler will output to logfile. 
+  # @param opts [Hash]  
+  # @option opts [Boolean] :console If set to true (default), the handler will output to STDOUT. 
+  # @option opts [String] :logfile If set to a target and the target is valid, the handler will output to logfile. 
   #
-  #   
   def initialize(opts = {}, *args, &block)
     raise TypeError unless opts.is_a? Hash
     @outputQueue = Queue.new
@@ -19,6 +24,29 @@ class OutputHandler
     self.spawn_output
   end
 
+  # Convenience method, accepts a second parameter to force carriage return
+  # (while \\r in-line also is accepted)
+  #
+  # @param chunk [printable Object]
+  # @param cr    [Boolean] for carriage return
+  def puts(chunk = "", cr = false)
+      self.out(chunk, true, cr)
+  end
+
+  # (see #puts) 
+  def puts!(chunk = "", cr = false)
+    self.out!(chunk, true, cr)
+  end
+
+  # (see #puts)
+  def print(chunk = "", cr = false)
+      self.out(chunk, false, cr)
+  end
+
+  # (see #puts)
+  def print!(chunk = "", cr = false)
+    self.out!(chunk, false, cr)
+  end
 
   # Returns whether output currently is paused.
   #
@@ -52,28 +80,36 @@ class OutputHandler
 
   # Flushes currently suspended output.
   #
-  # @param silent [Boolean] If set to true, flushes to /dev/null, else to configured output(s).
+  # @param silent [Boolean] If set to true, flushes to /dev/null, else 
+  # to configured output(s).
   def flush(silent = false)
     while not @outputQueue.empty?
       el = @outputQueue.pop
-      self.out!(el[:s], el[:newline]) unless silent
+      self.out!(el[:chunk], el[:newline], el[:cr]) unless silent
     end
   end
 
-  # Sends next chunk to outputs. Will be queued if #paused, otherwise sent to output(s).
+  # Sends next chunk to outputs. Will be queued if #paused, otherwise
+  # sent to output(s).
   #
   # @param chunk [printable Object]
-  # @param newline [Boolean] Indicates whether (default) or not to end line with a newline character.
-  def out(chunk = "", newline = true)
-    @outputQueue << { s: chunk, newline: newline }
+  # @param newline [Boolean] Indicates whether (default) or not to end 
+  # line with a newline character.
+  def out(chunk = "", newline = true, cr = false)
+    el = { chunk: chunk, newline: newline, cr: cr}
+    @outputQueue << el
   end
 
   # Sends next chunk to output(s) directly, regardless of #paused.
   #
   # @param (see #out)
-  def out!(chunk = "", newline = true)
-    print "\r#{chunk.chomp}#{newline ? "\n" : ""}" if @console
-    File.open(@logfile,'a+'){|f| f.write "\r#{chunk.chomp}#{newline ? "\n" : "" }" }  if @file
+  def out!(chunk = "", newline = true, cr = false)
+    superprint "#{cr ? "\r" : "" 
+               }#{chunk.chomp
+               }#{newline ? "\n" : ""}" if @console
+    File.open(@logfile,'a+'){|f| f.write "#{cr ? "\r" : "" 
+                                         }#{chunk.chomp
+                                         }#{newline ? "\n" : "" }" }  if @file
   end
 
   # Spawns output thread
@@ -84,13 +120,33 @@ class OutputHandler
         if self.paused?
           sleep 0.1
         else
-          out = @outputQueue.pop
-          s   = out[:s]
-          print "\r#{s}#{out[:newline] ? "\n" : ""}" if @console
-          File.open(@logfile,'a+'){|f| f.write "\r#{s}#{out[:newline] ? "\n" : "" }" }  if @file
+          o = @outputQueue.pop
+          superprint "#{o[:cr] ? "\r" : "" 
+                     }#{o[:chunk]
+                     }#{o[:newline] ? "\n" : ""}" if @console
+          File.open(@logfile,'a+') do |f| 
+            f.write  "#{o[:cr] ? "\r" : "" 
+                     }#{o[:chunk]
+                     }#{o[:newline] ? "\n" : "" }"
+          end if @file
         end
       end
     end
+  end
+
+  # Provides inspection
+  #
+  # @!visibility private
+  def inspect
+    arr = []
+    tmpQueue = Queue.new
+    while not @outputQueue.empty?
+      el = @outputQueue.pop 
+      arr << el
+      tmpQueue << el
+    end
+    @outputQueue = tmpQueue
+    return "<#OutputHandler:0x#{self.object_id.to_s(16)}, paused: #{@paused}, queueLength: #{@outputQueue.size}, outputQueue: #{arr.inspect}>"
   end
 
   # Spawns a thread that creates some random output
@@ -111,6 +167,5 @@ class OutputHandler
       @random_out_thread = nil
     end
   end
-
 
 end

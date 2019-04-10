@@ -10,7 +10,7 @@ Feature: Pausing and unpausing the Outputhandler
 
     Given a new instance is created
     And it is paused
-    Then #out should not send output
+    Then #out should not send immediate output
     And #out should send immediate output when unpausing
 
   Scenario: Creating and pausing the outputHandler for 2 second should not print anything, but after 2 seconds it should
