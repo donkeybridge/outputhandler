@@ -66,8 +66,7 @@ class OutputHandler
     @paused
   end
 
-  # Pauses the output. If parameter is sent, output will autoresume after delay. Overrides currently
-  # set delay.
+  # Pauses the output. If parameter is sent, output will automatically resume after delay.
   #
   # @param limit [Numeric] Time to pause.
   def pause(limit = 0)
