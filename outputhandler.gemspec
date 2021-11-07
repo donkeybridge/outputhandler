@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = "outputhandler"
-  s.version     = "0.1.3beta"
-  s.date        = "2019-04-10"
+  s.version     = File.read("#{__dir__}/VERSION")
+  s.date        = File.mtime("#{__dir__}/VERSION").strftime('%Y-%m-%d')
   s.summary     = "Wrapper class that enables asynchronious output (pausing / unpausing)"
   s.description = "Wrapper class that enables asynchronious output (pausing / unpausing) "
   s.authors     = [ "Benjamin L. Tischendorf" ]
@@ -9,18 +9,17 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/donkeybridge/outputhandler"
   s.platform    = Gem::Platform::RUBY
   s.license     = "BSD-4-Clause" 
-  s.required_ruby_version = '~> 2.0'
+  s.required_ruby_version = '~> 2.7'
 
   versioned = `git ls-files -z`.split("\0")
 
-  s.files = Dir['{lib,features}/**/*',
-                  'Rakefile', 'README*', 'LICENSE*',
-                  'VERSION*', 'HISTORY*', '.gitignore'] & versioned
-  # s.executables = (Dir['bin/**/*'] & versioned).map { |file| File.basename(file) }
-  # s.test_files = Dir['spec/**/*'] & versioned
+  s.files = Dir.chdir(File.expand_path(__dir__)) do
+    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+  end
+  s.bindir        = 'bin'
+  s.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   s.require_paths = ['lib']
 
-  # Dependencies
   # s.add_dependency 'bundler', '>= 1.1.16'
   s.add_development_dependency 'rspec','~>3.6'
   s.add_development_dependency 'cucumber','~>3.1'  

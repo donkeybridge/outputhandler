@@ -1,3 +1,4 @@
+require 'date'
 #The main class of this gem
 class OutputHandler
 
@@ -12,16 +13,26 @@ class OutputHandler
   # @option opts [Boolean] :console If set to true (default), the handler will output to STDOUT. 
   # @option opts [String] :logfile If set to a target and the target is valid, the handler will output to logfile. 
   #
-  def initialize(opts = {}, *args, &block)
-    raise TypeError unless opts.is_a? Hash
-    @outputQueue = Queue.new
-    @console = opts[:console].nil? ? true : opts[:console]
-    @logfile = opts[:logfile].nil? ? nil : opts[:logfile]
-    @file = @logfile.nil? ? false : true
-    @paused = false
+  def initialize(
+    console: true,
+    location: nil,
+    logfile: -> { "#{Date.today.strftime('%Y-%m-%d')}.log" },
+    carriage: false,
+    debug: false,
+    &block)
+
+    @debug   = debug
+    @file    = location.nil? ? false : true
+    @console = console
+    @location = location
+    @logfile = logfile.lambda? ? logfile : (-> { "#{logfile}" } )
+    @paused  = false
+    @defaultCR = carriage
     @outputMonitor = Monitor.new
-    system("touch #{@logfile}") unless @logfile.nil?
-    self.spawn_output
+    @outputQueue = Queue.new
+    @block   = block.to_proc if block_given?
+    system("mkdir -p #{location}") unless location.nil? or File.exist?(location)
+    spawn_output
   end
 
   # Convenience method, accepts a second parameter to force carriage return
@@ -29,23 +40,23 @@ class OutputHandler
   #
   # @param chunk [printable Object]
   # @param cr    [Boolean] for carriage return
-  def puts(chunk = "", cr = false)
-      self.out(chunk, true, cr)
+  def puts(chunk = "", cr: @defaultCR)
+      self.out(chunk: chunk, newline: true, cr: cr)
   end
 
   # (see #puts) 
-  def puts!(chunk = "", cr = false)
-    self.out!(chunk, true, cr)
+  def puts!(chunk = "", cr: @defaultCR)
+    self.out!(chunk: chunk, newline: true, cr: cr)
   end
 
   # (see #puts)
-  def print(chunk = "", cr = false)
-      self.out(chunk, false, cr)
+  def print(chunk = "", cr: @defaultCR)
+      self.out(chunk: chunk, newline: false, cr: cr)
   end
 
   # (see #puts)
-  def print!(chunk = "", cr = false)
-    self.out!(chunk, false, cr)
+  def print!(chunk =  "", cr: @defaultCR)
+    self.out!(chunk: chunk, newline: false, cr: cr)
   end
 
   # Returns whether output currently is paused.
@@ -78,38 +89,59 @@ class OutputHandler
     @paused = false
   end
 
+  alias_method :resume, :unpause
+
   # Flushes currently suspended output.
   #
   # @param silent [Boolean] If set to true, flushes to /dev/null, else 
   # to configured output(s).
-  def flush(silent = false)
-    while not @outputQueue.empty?
-      el = @outputQueue.pop
-      self.out!(el[:chunk], el[:newline], el[:cr]) unless silent
+  def flush(silent: false)
+    while not outputQueue.empty?
+      el = outputQueue.pop
+      self.out!(**el) unless silent
     end
   end
+
+  # Provides inspection
+  #
+  def inspect
+    arr = []
+    tmpQueue = Queue.new
+    while not @outputQueue.empty?
+      el = @outputQueue.pop
+      arr << el
+      tmpQueue << el
+    end
+    @outputQueue = tmpQueue
+    return "<#OutputHandler:0x#{self.object_id.to_s(16)}, paused: #{@paused}, queueLength: #{@outputQueue.size}, outputQueue: #{arr.inspect}>"
+  end
+
+  private
+
+  attr_reader :console, :logfile, :location, :file, :outputQueue, :debug
 
   # Sends next chunk to outputs. Will be queued if #paused, otherwise
   # sent to output(s).
   #
   # @param chunk [printable Object]
-  # @param newline [Boolean] Indicates whether (default) or not to end 
+  # @param newline [Boolean] Indicates whether (default) or not to end
   # line with a newline character.
-  def out(chunk = "", newline = true, cr = false)
-    el = { chunk: chunk, newline: newline, cr: cr}
-    @outputQueue << el
+  def out(chunk: "", newline: true, cr: false)
+    outputQueue << { chunk: chunk, newline: newline, cr: cr }
   end
 
   # Sends next chunk to output(s) directly, regardless of #paused.
   #
   # @param (see #out)
-  def out!(chunk = "", newline = true, cr = false)
-    superprint "#{cr ? "\r" : "" 
+  def out!(chunk: "", newline: true, cr: false)
+    binding.irb if debug
+    superprint("#{cr ? "\r" : ""
                }#{chunk.chomp
-               }#{newline ? "\n" : ""}" if @console
-    File.open(@logfile,'a+'){|f| f.write "#{cr ? "\r" : "" 
-                                         }#{chunk.chomp
-                                         }#{newline ? "\n" : "" }" }  if @file
+               }#{newline ? "\n" : ""}") if console
+    File.open("#{location}/#{logfile.call}",'a+'){|f| f.write "#{cr ? "\r" : ""
+                                        }#{chunk.chomp
+                                        }#{newline ? "\n" : "" }" }  if file
+    @block.call(chunk) if @block.is_a? Proc
   end
 
   # Spawns output thread
@@ -120,33 +152,11 @@ class OutputHandler
         if self.paused?
           sleep 0.1
         else
-          o = @outputQueue.pop
-          superprint "#{o[:cr] ? "\r" : "" 
-                     }#{o[:chunk]
-                     }#{o[:newline] ? "\n" : ""}" if @console
-          File.open(@logfile,'a+') do |f| 
-            f.write  "#{o[:cr] ? "\r" : "" 
-                     }#{o[:chunk]
-                     }#{o[:newline] ? "\n" : "" }"
-          end if @file
+          o = outputQueue.pop
+          out!(**o)
         end
       end
     end
-  end
-
-  # Provides inspection
-  #
-  # @!visibility private
-  def inspect
-    arr = []
-    tmpQueue = Queue.new
-    while not @outputQueue.empty?
-      el = @outputQueue.pop 
-      arr << el
-      tmpQueue << el
-    end
-    @outputQueue = tmpQueue
-    return "<#OutputHandler:0x#{self.object_id.to_s(16)}, paused: #{@paused}, queueLength: #{@outputQueue.size}, outputQueue: #{arr.inspect}>"
   end
 
   # Spawns a thread that creates some random output
