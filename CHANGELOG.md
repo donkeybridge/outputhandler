@@ -1,3 +1,6 @@
+## 0.2.0.1 (November 07, 2021)
+  - minor fix
+
 ## 0.2.0 (November 07, 2021)
   - minor fix
 
